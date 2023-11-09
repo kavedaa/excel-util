@@ -1,0 +1,11 @@
+.bsp/
+.bloop/
+.metals/
+metals.sbt
+null
+
+.vscode/
+
+target/
+
+*.xlsx
