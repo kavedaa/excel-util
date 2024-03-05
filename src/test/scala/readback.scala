@@ -6,6 +6,10 @@ import java.time.*
 
 import org.scalatest.funsuite._
 import org.scalatest.matchers.should._
+import java.time.temporal.TemporalField
+import java.time.temporal.ChronoField
+import java.time.chrono.Chronology
+import java.time.temporal.ChronoUnit
 
 class ReadbackTest extends AnyFunSuite with Matchers:
 
@@ -43,6 +47,10 @@ class ReadbackTest extends AnyFunSuite with Matchers:
     localDateTime: Option[LocalDateTime])
     derives SheetWriter, SheetReader
 
+  val date = LocalDate.of(2023, 12, 31)
+  val time = LocalTime.of(12, 0, 0)
+  val dateTime = date.atTime(time)
+
   test("base data types"):
 
     val data = Data(
@@ -57,11 +65,11 @@ class ReadbackTest extends AnyFunSuite with Matchers:
       1.23456789,
       BigInt("1234567890"),
       BigDecimal("1234567890.12345"),
-      LocalDate.now,
-      LocalTime.now,
-      LocalDateTime.now)
+      date,
+      time,
+      dateTime)
 
-    val filename = "test-base.xlsx"
+    val filename = "temp/test-base.xlsx"
 
     Excel.writeFile(filename, Seq(data))
     val res = Excel.readFile[Data](filename)
@@ -83,11 +91,11 @@ class ReadbackTest extends AnyFunSuite with Matchers:
       Some(1.23456789),
       Some(BigInt("1234567890")),
       Some(BigDecimal("1234567890.12345")),
-      Some(LocalDate.now),
-      Some(LocalTime.now),
-      Some(LocalDateTime.now))
+      Some(date),
+      Some(time),
+      Some(dateTime))
 
-    val filename = "test-option-some.xlsx"
+    val filename = "temp/test-option-some.xlsx"
 
     Excel.writeFile(filename, Seq(data))
     val res = Excel.readFile[OptionData](filename)
@@ -113,7 +121,7 @@ class ReadbackTest extends AnyFunSuite with Matchers:
       None,
       None)
 
-    val filename = "test-option-none.xlsx"
+    val filename = "temp/test-option-none.xlsx"
 
     Excel.writeFile(filename, Seq(data))
     val res = Excel.readFile[OptionData](filename)

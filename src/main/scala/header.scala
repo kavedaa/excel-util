@@ -1,17 +1,22 @@
 package no.vedaadata.excel
 
-import org.apache.poi.ss.usermodel.*
+trait DataPolicy:
+  def dataRowIndex: Int
 
-import no.vedaadata.text.LabelTransformer
+sealed trait HeaderPolicy extends DataPolicy
 
-sealed trait HeaderPolicy[+A](val offset: Int)
+// sealed trait StyledHeaderPolicy extends HeaderPolicy:
+//   def cellStyleFactory: HeaderCellStyleFactory
 
 object HeaderPolicy:
 
-  object NoHeader extends HeaderPolicy[Nothing](0)
-  class SomeHeader[A](gap: Int)(using val cellStyleFactory: HeaderCellStyleFactory) extends HeaderPolicy(gap + 1)
-  
-  def Header[A](using HeaderCellStyleFactory) = SomeHeader(0)
-  def HeaderGap[A](gap: Int)(using HeaderCellStyleFactory, LabelTransformer) = SomeHeader(gap)
+  object NoHeader extends HeaderPolicy:
+    def dataRowIndex = 0
 
-  given [A](using HeaderCellStyleFactory): HeaderPolicy[A] = Header
+  class Header(val headerRowIndex: Int, val dataRowIndex: Int) extends HeaderPolicy:
+    def this(headerRowIndex: Int)  = this(headerRowIndex, headerRowIndex + 1)
+
+  object Header:
+    given default: Header = Header(0, 1)
+  
+  given default: HeaderPolicy = Header.default

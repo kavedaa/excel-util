@@ -21,17 +21,17 @@ trait RowReader[A]:
   def read(row: Row): Try[A]
 
 trait SheetReader[A]:
-  def read(sheet: Sheet)(using HeaderPolicy[A]): Try[List[A]]
+  def read(sheet: Sheet)(using HeaderPolicy): Try[List[A]]
 
 object SheetReader:
 
-  def read[A](sheet: Sheet)(using sheetReader: SheetReader[A])(using HeaderPolicy[A]) =
+  def read[A](sheet: Sheet)(using sheetReader: SheetReader[A])(using HeaderPolicy) =
     sheetReader.read(sheet)
 
   def fromRowReader[A](rowReader: RowReader[A]) =
     new SheetReader[A]:
-      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy[A]) =
-        val rowNums = (sheet.getFirstRowNum + headerPolicy.offset) to sheet.getLastRowNum
+      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy) =
+        val rowNums = (sheet.getFirstRowNum + headerPolicy.dataRowIndex) to sheet.getLastRowNum
         val validRowNums = rowNums.filter: rowNum =>
           Option(sheet.getRow(rowNum)).isDefined
         val items = validRowNums.map: rowNum =>
@@ -39,12 +39,12 @@ object SheetReader:
           rowReader.read(row)
         Try(items.map(_.get).toList)
 
-  def fromRowReaderFactory[A](rowReaderFactory: Detection.IndexedLabels ?=> RowReader[A]) =
+  def fromRowReaderFactory[A](rowReaderFactory: Detection.IndexedLabels ?=> RowReader[A])(using header: HeaderPolicy.Header) =
     new SheetReader[A]:
-      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy[A]) =
-        val detected = Detection.detectLabels(sheet)(0)   // TODO row index get from header policy
-        val rowReader = rowReaderFactory(using detected)
-        fromRowReader(rowReader).read(sheet)
+      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy) =
+        Detection.detectLabels(sheet)(header.headerRowIndex).flatMap: detected =>
+          val rowReader = rowReaderFactory(using detected)
+          fromRowReader(rowReader).read(sheet)
 
   private def defaultIndexedReaders(cellReaders: List[CellReader[Any]]): Try[List[(CellReader[Any], (String, Int))]] = 
     Success(cellReaders.zipWithIndex map { (cellReader, index) => (cellReader, ("", index)) } )
@@ -53,12 +53,10 @@ object SheetReader:
     new SheetReader[P]:
       type CellReaders = Tuple.Map[m.MirroredElemTypes, CellReader]
       val cellReaders = summonAll[CellReaders].toList.asInstanceOf[List[CellReader[Any]]]
-      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy[P]) =
-        val headerRowNum = headerPolicy.offset
-        val headerRow = sheet.getRow(headerRowNum)
+      def read(sheet: Sheet)(using headerPolicy: HeaderPolicy) =
         val indexedReaders = defaultIndexedReaders(cellReaders)
         indexedReaders.flatMap { xs =>
-          val rowNums = (sheet.getFirstRowNum + headerPolicy.offset) to sheet.getLastRowNum
+          val rowNums = (sheet.getFirstRowNum + headerPolicy.dataRowIndex) to sheet.getLastRowNum
           val validRowNums = rowNums filter { rowNum =>
             Option(sheet.getRow(rowNum)).isDefined
           } 

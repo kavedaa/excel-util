@@ -8,4 +8,4 @@ null
 
 target/
 
-*.xlsx
+temp/

@@ -1,6 +1,6 @@
 name := "excel-util"
 
-version := "0.9.1.7"
+version := "0.9.1.12"
 
 organization := "no.vedaadata"
 

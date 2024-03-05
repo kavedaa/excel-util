@@ -22,7 +22,7 @@ object Person:
 
   //  derived
 
-  Excel.writeFile("demo-write-derived.xlsx", Person.items)
+  Excel.writeFile("temp/demo-write-derived.xlsx", Person.items)
 
   //  manual layout
 
@@ -35,4 +35,4 @@ object Person:
     Layout.Column("Formue", _.fortune),
     Layout.Column(15)("Fødselsdato", _.birthDate))
 
-  Excel.writeFile("demo-write-layout.xlsx", Person.items)(using SheetWriter.fromLayout(layout))
+  Excel.writeFile("temp/demo-write-layout.xlsx", Person.items)(using SheetWriter.fromLayout(layout))

@@ -22,8 +22,8 @@ object Detection:
       case _ =>
         Failure(Exception(s"Column $label not found"))
 
-  def detectLabels(sheet: Sheet)(headerRowNum: Int): IndexedLabels =
-    Excel.columnLabelsInSheet(sheet)(headerRowNum)
+  def detectLabels(sheet: Sheet)(headerRowIndex: Int): Try[IndexedLabels] =
+    Excel.columnLabelsInSheet(sheet)(headerRowIndex)
 
   type RowReaderFactory[A] = IndexedLabels ?=> RowReader[A]
 

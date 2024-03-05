@@ -79,10 +79,10 @@ object CellReader:
 
   class StringLocalDateReader(formats: List[DateTimeFormatter]) extends CellReader[LocalDate]:
     def read(cell: Cell) =
-      checkNull(cell).map(_.getStringCellValue).flatMap: string =>
+      checkNull(cell).map(_.getStringCellValue).flatMap: x =>
         formats
           .iterator
-          .map(format => Try(LocalDate.parse(string, format)))
+          .map(format => Try(LocalDate.parse(x.trim, format)))
           .collectFirst { case success @ Success(_) => success }
           .getOrElse(Failure(new Exception(s"Could not parse $string as date")))
 
@@ -99,5 +99,52 @@ object CellReader:
 
   given option[A](using inner: CellReader[A]): CellReader[Option[A]] with
     def read(cell: Cell) =
-      if (cell == null) || (cell.getCellType == CellType.BLANK) then Success(None)
+      if (cell == null) || (cell.getCellType == CellType.BLANK) || ((cell.getCellType == CellType.STRING) && (cell.getStringCellValue.isBlank)) then Success(None)
       else inner.read(cell).map(Some.apply)
+
+end CellReader
+
+
+trait CellWriter[A]:
+  def write(cell: Cell, value: A): Unit
+
+object CellWriter:
+
+  def apply[A](using cellWriter: CellWriter[A]) = cellWriter
+
+  given boolean: CellWriter[Boolean] with
+    def write(cell: Cell, value: Boolean) =
+      cell.setCellValue(value)
+
+  given string: CellWriter[String] with
+    def write(cell: Cell, value: String) =
+      cell.setCellValue(value)
+
+  given char: CellWriter[Char] with
+    def write(cell: Cell, value: Char) =
+      cell.setCellValue(value.toString)
+
+  given numeric[N](using n: Numeric[N]): CellWriter[N] with
+    def write(cell: Cell, value: N) =
+      cell.setCellValue(n.toDouble(value))
+
+  given localDate: CellWriter[LocalDate] with
+    def write(cell: Cell, value: LocalDate) =
+      cell.setCellValue(value)
+
+  given localTime: CellWriter[LocalTime] with
+    def write(cell: Cell, value: LocalTime) =
+      //  for some reason POI does not support time values directly 
+      val doubleValue = value.toNanoOfDay.toDouble / (24L * 60 * 60 * 1000 * 1000 * 1000)
+      cell.setCellValue(doubleValue)
+
+  given localDateTime: CellWriter[LocalDateTime] with
+    def write(cell: Cell, value: LocalDateTime) =
+      cell.setCellValue(value)
+
+  given option[A](using inner: CellWriter[A]): CellWriter[Option[A]] with
+    def write(cell: Cell, value: Option[A]) =
+      value match
+        case Some(x) => inner.write(cell, x)
+        case None => cell.setBlank()
+
