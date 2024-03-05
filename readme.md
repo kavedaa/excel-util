@@ -8,6 +8,8 @@ libraryDependencies += "no.vedaadata" %% "excel-util" % "0.9.1.7"
 
 ## Use it
 
+### Writing
+
 ```scala
 case class Person(
   firstName: String,
@@ -43,4 +45,18 @@ object Person:
     Layout.Column(15)("Fødselsdato", _.birthDate))
 
   Excel.writeFile("demo-write-layout.xlsx", Person.items)(using SheetWriter.fromLayout(layout))
+```
+
+### Reading
+
+```scala
+  val labels = ("First name", "Last name", "Birth date", "City")
+
+  val rowReaderFactory: Detection.RowReaderFactory[Person] = Detection.RowReaderFactory.derived(labels)
+
+  given HeaderPolicy.Header = HeaderPolicy.Header(1)  //  specify header row, zero-based, default is 0
+
+  val sheetReader = SheetReader.fromRowReaderFactory(rowReaderFactory)
+
+  val persons = Excel.readFile("data/example-for-read-header-policy.xlsx")(using sheetReader)
 ```
