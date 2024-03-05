@@ -3,7 +3,7 @@
 ```scala
 resolvers += "Vedaa Data Public" at "https://mymavenrepo.com/repo/UulFGWFKTwklJGmfuD8D/"
 
-libraryDependencies += "no.vedaadata" %% "excel-util" % "0.9.1.7"
+libraryDependencies += "no.vedaadata" %% "excel-util" % "0.9.1.12"
 ```
 
 ## Use it
@@ -27,36 +27,42 @@ object Person:
 ```
 
 ```scala
-  //  automatically derived
+//  automatically derived
 
-  Excel.writeFile("demo-write-derived.xlsx", Person.items)
+Excel.writeFile("demo-write-derived.xlsx", Person.items)
 ```
 
 ```scala
-  //  manual layout
+//  manual layout
 
-  import SheetWriter.Layout
+import SheetWriter.Layout
 
-  val layout = Layout[Person](
-    Layout.Column(25)("Fornavn", _.firstName),
-    Layout.Column(30)("Etternavn", _.lastName),
-    Layout.Column("Alder", _.age),
-    Layout.Column("Formue", _.fortune),
-    Layout.Column(15)("Fødselsdato", _.birthDate))
+val layout = Layout[Person](
+  Layout.Column(25)("Fornavn", _.firstName),
+  Layout.Column(30)("Etternavn", _.lastName),
+  Layout.Column("Alder", _.age),
+  Layout.Column("Formue", _.fortune),
+  Layout.Column(15)("Fødselsdato", _.birthDate))
 
-  Excel.writeFile("demo-write-layout.xlsx", Person.items)(using SheetWriter.fromLayout(layout))
+Excel.writeFile("demo-write-layout.xlsx", Person.items)(using SheetWriter.fromLayout(layout))
 ```
 
 ### Reading
 
 ```scala
-  val labels = ("First name", "Last name", "Birth date", "City")
+case class Person(
+  firstName: String,
+  lastName: String,
+  birthDate: Option[LocalDate],
+  city: Option[String])
 
-  val rowReaderFactory: Detection.RowReaderFactory[Person] = Detection.RowReaderFactory.derived(labels)
+val labels = ("First name", "Last name", "Birth date", "City")
 
-  given HeaderPolicy.Header = HeaderPolicy.Header(1)  //  specify header row, zero-based, default is 0
+val rowReaderFactory: Detection.RowReaderFactory[Person] = Detection.RowReaderFactory.derived(labels)
 
-  val sheetReader = SheetReader.fromRowReaderFactory(rowReaderFactory)
+given HeaderPolicy.Header = HeaderPolicy.Header(1)  //  specify header row, zero-based, default is 0
 
-  val persons = Excel.readFile("data/example-for-read-header-policy.xlsx")(using sheetReader)
+val sheetReader = SheetReader.fromRowReaderFactory(rowReaderFactory)
+
+val persons = Excel.readFile("data/example-for-read-header-policy.xlsx")(using sheetReader)
 ```
