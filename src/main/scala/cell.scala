@@ -29,6 +29,15 @@ object CellReader:
     def read(cell: Cell) =
       checkNull(cell).map(_.getBooleanCellValue)
 
+  class StringBooleanReader(trueTexts: List[String], falseTexts: List[String]) extends CellReader[Boolean]:
+    def read(cell: Cell) =
+      checkNull(cell).map(_.getStringCellValue).flatMap: x =>
+        if trueTexts.contains(x) then Success(true)
+        else if falseTexts.contains(x) then Success(false)
+        else Failure(Exception(s"Could not parse $x as boolean"))
+
+  object DefaultStringBooleanReader extends StringBooleanReader(List("true", "yes", "TRUE", "YES"), List("false", "no", "FALSE", "NO"))
+
   given string: CellReader[String] with
     def read(cell: Cell) =
       checkNull(cell).map(_.getStringCellValue)
