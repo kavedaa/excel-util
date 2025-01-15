@@ -20,6 +20,20 @@ class LabeledColumn[A](label: String)(using cellReader: CellReader[A])(using lim
 trait RowReader[A]:
   def read(row: Row): Try[A]
 
+object RowReader:
+  inline def derived[P <: Product]
+    (using m: Mirror.ProductOf[P]):
+    RowReader[P] =
+      new RowReader[P]:
+        type CellReaders = Tuple.Map[m.MirroredElemTypes, CellReader]
+        val cellReaders = summonAll[CellReaders].toList.asInstanceOf[List[CellReader[Any]]]
+        def read(row: Row) =
+          val values = cellReaders.zipWithIndex.map: (cellReader, index) => 
+            IndexedColumn(index)(using cellReader).read(row)
+          Try(values.map(_.get)).map: xs =>
+            val tuple = xs.foldRight[Tuple](EmptyTuple)(_ *: _)
+            m.fromProduct(tuple)
+
 trait SheetReader[A]:
   def read(sheet: Sheet)(using HeaderPolicy): Try[List[A]]
 
