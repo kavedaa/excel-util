@@ -10,13 +10,20 @@ import org.apache.poi.ss.usermodel.*
 
 import no.vedaadata.text.LabelTransformer
 
+
+
 def createCell[A](index: Int, value: A)(using row: Row)(using cellWriter: CellWriter[A])(using cellStyle: CellStyle) =
   val cell = row.createCell(index)
   cell.setCellStyle(cellStyle)
   cellWriter.write(cell, value)
 
 trait SheetWriter[A]:
-  def write(xs: Iterable[A])(using sheet: Sheet)(using HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook): Unit
+
+  /**
+    *   Writes a collection of values to a sheet.
+    *   Returns the area of the sheet that was written to, including any header.
+    */
+  def write(xs: Iterable[A])(using sheet: Sheet)(using HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook): Area
 
 object SheetWriter:
 
@@ -29,7 +36,7 @@ object SheetWriter:
       def apply[A, B](width: Int)(label: String, f: A => B)(using CellWriter[B], CellStyleProvider[B]): Column[A, B] = Column(label, f, Some(width))
 
   def fromLayout[A](layout: Layout[A]) = new SheetWriter[A]:
-    def write(xs: Iterable[A])(using sheet: Sheet)(using headerPolicy: HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook) =
+    def write(xs: Iterable[A])(using sheet: Sheet)(using headerPolicy: HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook): Area =
       //  column widths
       layout.columns.map(_.width).zipWithIndex.foreach: (columnWidth, index) =>
         columnWidth.foreach(width => sheet.setColumnWidth(index, width * 256))
@@ -52,6 +59,7 @@ object SheetWriter:
           case ((column, cellStyle), columnIndex) =>          
             val cell = row.createCell(columnIndex)
             createCell(columnIndex, column.f(x))(using row)(using column.cellWriter)(using cellStyle)
+      Area(sheet, 0, headerPolicy.firstRowIndex, layout.columns.size - 1, headerPolicy.dataRowIndex + xs.size - 1)
 
   inline def derived[P <: Product](using m: Mirror.ProductOf[P])(using labelTransformer: LabelTransformer): SheetWriter[P] =
     new SheetWriter:
@@ -83,10 +91,13 @@ object SheetWriter:
           elements.zip(cellWriters).zip(cellStyles).zipWithIndex.foreach:
             case (((element, cellWriter), cellStyle), index) =>
               createCell(index, element)(using row)(using cellWriter)(using cellStyle)
+        Area(sheet, 0, headerPolicy.firstRowIndex, cellWriters.size - 1, headerPolicy.dataRowIndex + xs.size - 1)
       
   inline given [P <: Product](using m: Mirror.ProductOf[P]): SheetWriter[P] = derived
     
-def createSheet[A](value: Iterable[A])(using sheetWriter: SheetWriter[A])(using headerPolicy: HeaderPolicy)(using wb: Workbook) =
-  val sheet = wb.createSheet
+def createSheet[A](value: Iterable[A], name: Option[String] = None)(using sheetWriter: SheetWriter[A])(using headerPolicy: HeaderPolicy)(using wb: Workbook) =
+  val sheet = name match
+    case Some(name) => wb.createSheet(name)
+    case None => wb.createSheet
   sheetWriter.write(value)(using sheet)
 

@@ -50,6 +50,12 @@ object Excel:
   def writeFile[A](file: File, xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
     given wb: Workbook = new XSSFWorkbook
     createSheet(xs)
+    writeWorkbookToFile(wb, file)
+
+  def writeFile[A](filename: String, xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
+    writeFile(new File(filename), xs)
+
+  def writeWorkbookToFile(wb: Workbook, file: File): Try[File] =
     try
       val fos = new FileOutputStream(file) 
       try
@@ -59,8 +65,7 @@ object Excel:
       finally
         fos.close()
     catch
-      case ex => Failure(ex)            
+      case ex => Failure(ex)
 
-  def writeFile[A](filename: String, xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
-    writeFile(new File(filename), xs)
-
+  def writeWorkbookToFile(wb: Workbook, filename: String): Try[File] =
+    writeWorkbookToFile(wb, new File(filename))
