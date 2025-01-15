@@ -16,11 +16,12 @@ case class Person(
   birthDate: Option[LocalDate],
   city: Option[String])
 
+
 @main def main =
 
   val exampleFileName = "data/example-for-read.xlsx"
 
-  def print(persons: Try[List[Person]]) =
+  def print(persons: Try[List[Any]]) =
     persons match
       case Success(xs) => xs.foreach(println)
       case Failure(ex) => println(ex.getMessage)
@@ -135,3 +136,55 @@ case class Person(
 
     print(persons5)
   }
+
+  //  6
+
+  {
+    println("--- 6 ---")
+
+    case class Person6(
+      name1: String,
+      age1: Int,
+      name2: String,
+      age2: Int)
+
+    val exampleDuplicateHeadersFileName = "data/example-for-read-duplicate-headers.xlsx"
+
+    val rowReader6 = RowReader.derived[Person6]
+
+    val sheetReader6 = SheetReader.fromRowReader(rowReader6)
+
+    val persons6 = Excel.readFile(exampleDuplicateHeadersFileName)(using sheetReader6)
+
+    print(persons6)
+  }  
+
+  //  7
+
+  {
+    println("--- 7 ---")
+
+    case class Person7(
+      name1: String,
+      age1: Int,
+      name2: String,
+      age2: Int,
+      isTall: Boolean,
+      isShort: Boolean,
+      isYoung: Boolean,
+      isOld: Boolean,
+      isFast: Boolean,
+      isSlow: Boolean)
+
+    val exampleDuplicateHeadersFileName = "data/example-for-read-duplicate-headers.xlsx"
+
+    val labels6 = ("Name", "Age", "Name", "Age", "Is tall", "Is short", "Is young", "Is old", "Is fast", "Is slow")
+
+    val rowReader7 = RowReader.derived[Person7]
+
+    val sheetReader7 = SheetReader.fromRowReader(rowReader7)
+
+    val persons7 = Excel.readFile(exampleDuplicateHeadersFileName)(using sheetReader7)
+
+    print(persons7)
+  }  
