@@ -157,3 +157,8 @@ object CellWriter:
         case Some(x) => inner.write(cell, x)
         case None => cell.setBlank()
 
+  class StringBooleanWriter(trueText: String, falseText: String) extends CellWriter[Boolean]:
+    def write(cell: Cell, value: Boolean) =
+      cell.setCellValue(if value then trueText else falseText)
+
+
