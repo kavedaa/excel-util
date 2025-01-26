@@ -71,7 +71,7 @@ class ReadbackTest extends AnyFunSuite with Matchers:
 
     val filename = "temp/test-base.xlsx"
 
-    Excel.writeFile(filename, Seq(data))
+    Excel.writeFile(Seq(data), filename)
     val res = Excel.readFile[Data](filename)
 
     res.isSuccess shouldBe true
@@ -97,7 +97,7 @@ class ReadbackTest extends AnyFunSuite with Matchers:
 
     val filename = "temp/test-option-some.xlsx"
 
-    Excel.writeFile(filename, Seq(data))
+    Excel.writeFile(Seq(data), filename)
     val res = Excel.readFile[OptionData](filename)
 
     res.isSuccess shouldBe true
@@ -123,7 +123,7 @@ class ReadbackTest extends AnyFunSuite with Matchers:
 
     val filename = "temp/test-option-none.xlsx"
 
-    Excel.writeFile(filename, Seq(data))
+    Excel.writeFile(Seq(data), filename)
     val res = Excel.readFile[OptionData](filename)
 
     res.isSuccess shouldBe true

@@ -47,25 +47,49 @@ object Excel:
   def readFile[A](filename: String)(using sheetReader: SheetReader[A])(using HeaderPolicy): Try[List[A]] = 
     readFile(new File(filename))
 
-  def writeFile[A](file: File, xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
-    given wb: Workbook = new XSSFWorkbook
-    createSheet(xs)
-    writeWorkbookToFile(wb, file)
+  //  writing
 
-  def writeFile[A](filename: String, xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
-    writeFile(new File(filename), xs)
+  def writeWorkbookToStream(wb: Workbook, os: OutputStream): Try[Unit] =
+    Try(wb.write(os))
 
+  def writeWorkbookToByteArray(wb: Workbook): Try[Array[Byte]] =
+    try
+      val bos = ByteArrayOutputStream()
+      val res = writeWorkbookToStream(wb, bos)
+      bos.close()
+      res.map(_ => bos.toByteArray)
+    catch
+      case ex => Failure(ex)
+      
   def writeWorkbookToFile(wb: Workbook, file: File): Try[File] =
     try
       val fos = new FileOutputStream(file) 
-      try
-        wb.write(fos)
-        wb.close()
-        Success(file)
-      finally
-        fos.close()
+      val res = writeWorkbookToStream(wb, fos)
+      fos.close()
+      res.map(_ => file)
     catch
       case ex => Failure(ex)
 
   def writeWorkbookToFile(wb: Workbook, filename: String): Try[File] =
     writeWorkbookToFile(wb, new File(filename))
+
+  def writeToStream[A](xs: Iterable[A], os: OutputStream)(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[Unit] =
+    given wb: Workbook = new XSSFWorkbook
+    createSheet(xs)
+    writeWorkbookToStream(wb, os)
+
+  def writeByteArray[A](xs: Iterable[A])(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[Array[Byte]] =
+    given wb: Workbook = new XSSFWorkbook
+    createSheet(xs)
+    writeWorkbookToByteArray(wb)
+
+  def writeFile[A](xs: Iterable[A], file: File)(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
+    given wb: Workbook = new XSSFWorkbook
+    createSheet(xs)
+    writeWorkbookToFile(wb, file)
+
+  def writeFile[A](xs: Iterable[A], filename: String)(using sheetWriter: SheetWriter[A])(using HeaderPolicy): Try[File] =
+    writeFile(xs, new File(filename))
+
+
+
