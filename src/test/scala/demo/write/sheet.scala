@@ -13,6 +13,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook
   
   given workbook: Workbook = new XSSFWorkbook
 
-  createSheet(items)(using SheetWriter.fromLayout(Person.layout))
+  createSheet(items)(using SheetWriter.fromLayout(PersonLayout))
   
   Excel.writeWorkbookToFile(workbook, "temp/demo-write-sheet.xlsx")

@@ -10,56 +10,34 @@ import org.apache.poi.ss.usermodel.*
 
 import no.vedaadata.text.LabelTransformer
 
-
+// TODO maybe not have these as top level
 
 def createCell[A](index: Int, value: A)(using row: Row)(using cellWriter: CellWriter[A])(using cellStyle: CellStyle) =
   val cell = row.createCell(index)
   cell.setCellStyle(cellStyle)
   cellWriter.write(cell, value)
 
+def createSheet[A](value: Iterable[A], name: Option[String] = None)(using sheetWriter: SheetWriter[A])(using HeaderPolicy)(using wb: Workbook) =
+  val sheet = name match
+    case Some(name) => wb.createSheet(name)
+    case None => wb.createSheet
+  sheetWriter.write(value)(using sheet)
+
+
 trait SheetWriter[A]:
 
   /**
-    *   Writes a collection of values to a sheet.
+    *   Writes a collection of values to a `Sheet`.
     *   Returns the area of the sheet that was written to, including any header.
     */
-  def write(xs: Iterable[A])(using sheet: Sheet)(using HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook): Area
+  def write(xs: Iterable[A])(using Sheet)(using HeaderPolicy)(using HeaderCellStyleFactory)(using Workbook): Area
 
 object SheetWriter:
 
-  class Layout[A](val columns: Layout.Column[A, ?]*)
-
-  object Layout:
-    case class Column[A, B](label: String, f: A => B, width: Option[Int])(using val cellWriter: CellWriter[B], val cellStyleProvider: CellStyleProvider[B])
-    object Column:
-      def apply[A, B](label: String, f: A => B)(using CellWriter[B], CellStyleProvider[B]): Column[A, B] = Column(label, f, None)
-      def apply[A, B](width: Int)(label: String, f: A => B)(using CellWriter[B], CellStyleProvider[B]): Column[A, B] = Column(label, f, Some(width))
-
-  def fromLayout[A](layout: Layout[A]) = new SheetWriter[A]:
-    def write(xs: Iterable[A])(using sheet: Sheet)(using headerPolicy: HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook): Area =
-      //  column widths
-      layout.columns.map(_.width).zipWithIndex.foreach: (columnWidth, index) =>
-        columnWidth.foreach(width => sheet.setColumnWidth(index, width * 256))
-      //  headers
-      headerPolicy match
-        case header: HeaderPolicy.Header =>
-          val row = sheet.createRow(0)
-          val cellStyle = headerCellStyleFactory(wb)
-          layout.columns.toList.zipWithIndex.foreach: (column, columnIndex) =>
-            val cell = row.createCell(columnIndex)
-            cell.setCellValue(column.label)
-            cell.setCellStyle(cellStyle)
-        case _ =>
-      //  rows          
-      val baseCellStyle = wb.createCellStyle
-      val cellStyles = layout.columns.map(_.cellStyleProvider.provide(baseCellStyle))
-      xs.zipWithIndex.foreach: (x, rowIndex) =>
-        val row = sheet.createRow(headerPolicy.dataRowIndex + rowIndex)
-        layout.columns.toList.zip(cellStyles).zipWithIndex.foreach: 
-          case ((column, cellStyle), columnIndex) =>          
-            val cell = row.createCell(columnIndex)
-            createCell(columnIndex, column.f(x))(using row)(using column.cellWriter)(using cellStyle)
-      Area(sheet, 0, headerPolicy.firstRowIndex, layout.columns.size - 1, headerPolicy.dataRowIndex + xs.size - 1)
+  /**
+    *   Creates a `SheetWriter` from a `Layout`.
+    */
+  def fromLayout[A](layout: Layout[A]): SheetWriter[A] = layout.toSheetWriter
 
   inline def derived[P <: Product](using m: Mirror.ProductOf[P])(using labelTransformer: LabelTransformer): SheetWriter[P] =
     new SheetWriter:
@@ -69,11 +47,6 @@ object SheetWriter:
       val cellStyleProviders = summonAll[CellStyleProviders].toList.asInstanceOf[List[CellStyleProvider[Any]]]
       val labels = constValueTuple[m.MirroredElemLabels].toList.asInstanceOf[List[String]].map(labelTransformer)
       def write(xs: Iterable[P])(using sheet: Sheet)(using headerPolicy: HeaderPolicy)(using headerCellStyleFactory: HeaderCellStyleFactory)(using wb: Workbook) =
-        // columnWidths.xs.zipWithIndex foreach { (columnWidth, index) =>
-        //   columnWidth foreach { width =>
-        //     sheet.setColumnWidth(index, width * 256)  
-        //   }  
-        // }
         headerPolicy match
           case header: HeaderPolicy.Header =>
             val row = sheet.createRow(0)
@@ -94,10 +67,4 @@ object SheetWriter:
         Area(sheet, 0, headerPolicy.firstRowIndex, cellWriters.size - 1, headerPolicy.dataRowIndex + xs.size - 1)
       
   inline given [P <: Product](using m: Mirror.ProductOf[P]): SheetWriter[P] = derived
-    
-def createSheet[A](value: Iterable[A], name: Option[String] = None)(using sheetWriter: SheetWriter[A])(using headerPolicy: HeaderPolicy)(using wb: Workbook) =
-  val sheet = name match
-    case Some(name) => wb.createSheet(name)
-    case None => wb.createSheet
-  sheetWriter.write(value)(using sheet)
-
+  

@@ -14,4 +14,4 @@ import demo.write.*
 
   //  manual layout
 
-  Excel.writeFile("temp/demo-write-file-layout.xlsx", items)(using SheetWriter.fromLayout(Person.layout))
+  Excel.writeFile("temp/demo-write-file-layout.xlsx", items)(using SheetWriter.fromLayout(PersonLayout))

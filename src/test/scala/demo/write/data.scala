@@ -4,6 +4,8 @@ import java.time.LocalDate
 
 import no.vedaadata.generator.Generator
 
+import no.vedaadata.excel.*
+
 case class Person(
   firstName: String,
   lastName: Option[String],
@@ -21,13 +23,13 @@ object Person:
     Generator.between(LocalDate.of(2000, 1, 1), LocalDate.of(2005, 1, 1)).andThen[Option])
     .mapN(Person.apply)
 
-  import no.vedaadata.excel.SheetWriter.Layout
 
-  val layout = Layout[Person](
-    Layout.Column(25)("First name", _.firstName),
-    Layout.Column(30)("Last name", _.lastName),
-    Layout.Column("Age", _.age),
-    Layout.Column("Fortune", _.fortune),
-    Layout.Column(15)("Date of birth", _.birthDate))
+object PersonLayout extends Layout[Person]:
+  def columns = List(
+    Column(25)("First name", _.firstName),
+    Column(30)("Last name", _.lastName),
+    Column("Age", _.age),
+    Column("Fortune", _.fortune),
+    Column(15)("Date of birth", _.birthDate))
 
 
